@@ -3,20 +3,18 @@
 #![feature(core)]
 #![feature(hash)]
 #![feature(rand)]
+#![feature(collections)]
 
 use std::old_io::{Reader};
 use std::old_io::fs::{self};
 
 mod data;
 mod encoding;
-
-struct TestData {
-    data_sets: Vec<data::SpanDataSet>
-}
+mod genetic;
 
 fn main() {
 
-    let mut test_data = TestData {
+    let mut test_data = data::TestData {
         data_sets: Vec::new()
     };
 
@@ -30,26 +28,40 @@ fn main() {
         }
     }
 
-    for _ in range(0, 5) {
-        let encoding = encoding::generate_random_encoding(32, 3);
-        println!("");
-        println!("Testing Encoding {}", encoding.to_string());
+    genetic::compute_fitness_of_all_encodings(&test_data);
 
-        for data_set in test_data.data_sets.iter() {
+    // let mut population = vec![];
 
-            print!(" > Dataset '{}': ", data_set.name.filename_display());
+    // for _ in range(0, 30) {
+    //     population.push(encoding::generate_random_encoding(32, 3));
+    // }
 
-            let mut encodable_count = 0;
+    // for _ in range(0, 100000) {
+    //     let mut ng = genetic::iterate_population(&population[], &test_data);
+    //     population.clear();
+    //     population.extend(ng.drain());
+    // }
 
-            for &span in data_set.spans.iter() {
-                if encoding.can_encode(span) {
-                    encodable_count += 1;
-                }
-            }
+    // for _ in range(0, 5) {
+    //     let encoding = encoding::generate_random_encoding(32, 3);
+    //     println!("");
+    //     println!("Testing Encoding {}", encoding.to_string());
 
-            let ratio = (encodable_count as f64) / (data_set.spans.len() as f64);
+    //     for data_set in test_data.data_sets.iter() {
 
-            println!("{:.2}%", ratio * 100.0f64);
-        }
-    }
+    //         print!(" > Dataset '{}': ", data_set.name.filename_display());
+
+    //         let mut encodable_count = 0;
+
+    //         for &span in data_set.spans.iter() {
+    //             if encoding.can_encode(span) {
+    //                 encodable_count += 1;
+    //             }
+    //         }
+
+    //         let ratio = (encodable_count as f64) / (data_set.spans.len() as f64);
+
+    //         println!("{:.2}%", ratio * 100.0f64);
+    //     }
+    // }
 }

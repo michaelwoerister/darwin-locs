@@ -7,9 +7,11 @@ use std::rand;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
+#[derive(PartialEq, Eq, Clone)]
 pub struct Encoding {
-    sub_encodings: Vec<SubEncoding>,
-    //max_total_bit_count: u32,
+    pub sub_encodings: Vec<SubEncoding>,
+    max_bits_for_subencodings: u32,
+    max_total_bit_count: u32,
 }
 
 impl Encoding {
@@ -32,7 +34,8 @@ impl Encoding {
 
         Encoding {
             sub_encodings: sub_encodings,
-            //max_total_bit_count: max_total_bit_count
+            max_bits_for_subencodings: max_total_bit_count - sub_encoding_disr_bits,
+            max_total_bit_count: max_total_bit_count,
         }
     }
 
@@ -57,16 +60,28 @@ impl Encoding {
 
         s
     }
+
+    pub fn sub_encodings(&self) -> &[SubEncoding] {
+        &self.sub_encodings[]
+    }
+
+    pub fn max_bits_for_subencodings(&self) -> u32 {
+        self.max_bits_for_subencodings
+    }
+
+    pub fn max_total_bit_count(&self) -> u32 {
+        self.max_total_bit_count
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SubEncoding {
-    length_bits: u32,
-    position_bits: u32,
-    expn_id_bits: u32,
-    max_encodable_length: u32,
-    max_encodable_position: u32,
-    max_encodable_expn_id: u32,
+    pub length_bits: u32,
+    pub position_bits: u32,
+    pub expn_id_bits: u32,
+    pub max_encodable_length: u32,
+    pub max_encodable_position: u32,
+    pub max_encodable_expn_id: u32,
 }
 
 impl SubEncoding {
@@ -88,7 +103,7 @@ impl SubEncoding {
     pub fn can_encode(&self, span: Span) -> bool {
         span.position <= self.max_encodable_position &&
         span.length <= self.max_encodable_length &&
-        span.expn_id <= self.max_encodable_expn_id
+        (span.expn_id == 0xFFFFFFFF || span.expn_id <= self.max_encodable_expn_id)
     }
 
     pub fn total_bit_count(&self) -> u32 {
@@ -109,10 +124,14 @@ fn generate_all_sub_encodings(bit_count: u32) -> Vec<SubEncoding> {
         }
     }
 
+    println!("Generated extensive list of sub-encodings with {} bits: {} candidates",
+             bit_count,
+             sub_encodings.len());
+
     return sub_encodings;
 }
 
-fn get_all_sub_encodings(bit_count: u32) -> &'static [SubEncoding] {
+pub fn get_all_sub_encodings(bit_count: u32) -> &'static [SubEncoding] {
 
     static mut ALL_SUB_ENCODINGS: [(usize, *const SubEncoding); 64] = [(0, 0 as *const SubEncoding); 64];
     static START: Once = ONCE_INIT;

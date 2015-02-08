@@ -44,3 +44,7 @@ pub fn read_span_file(path: &Path) -> SpanDataSet {
         name: path.clone()
     }
 }
+
+pub struct TestData {
+    pub data_sets: Vec<SpanDataSet>
+}
