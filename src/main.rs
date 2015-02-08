@@ -7,6 +7,8 @@
 
 use std::old_io::{Reader};
 use std::old_io::fs::{self};
+use std::thread::Thread;
+use std::mem;
 
 mod data;
 mod encoding;
@@ -28,7 +30,44 @@ fn main() {
         }
     }
 
-    genetic::compute_fitness_of_all_encodings(&test_data);
+
+    // genetic::compute_fitness_of_all_encodings(&test_data,
+    //                                           (0, 20214480),
+    //                                           "Thread 1");
+
+    let total_count = 20214480;
+    let thread_count = 8;
+    let mut guards = vec![];
+
+    for thread_index in range(0, thread_count) {
+        let thread_range_start = thread_index * (total_count / thread_count);
+        let thread_range_end = thread_range_start + (total_count / thread_count) + thread_count;
+        let test_data_ref: &'static data::TestData = unsafe {
+            mem::transmute(&test_data)
+        };
+
+        guards.push(Thread::scoped(move || {
+            let message = format!("Thread {}", thread_index);
+
+            genetic::compute_fitness_of_all_encodings(test_data_ref,
+                                                      (thread_range_start, thread_range_end),
+                                                      &message[])
+        }));
+    }
+
+    let mut results = vec![];
+
+    for guard in guards {
+        match guard.join() {
+            Ok(result) => results.push(result),
+            _ => println!("some error occurred")
+        };
+    }
+
+    println!("best results:");
+    for result in results {
+        println!("{}, fitness={}", encoding::Encoding::to_string(&result.0), result.1);
+    }
 
     // let mut population = vec![];
 

@@ -140,22 +140,28 @@ fn rand_between(lower: usize, upper: usize) -> usize {
     return lower + ((upper - lower) as f64 * r) as usize;
 }
 
-pub fn compute_fitness_of_all_encodings(test_data: &TestData) {
+pub fn compute_fitness_of_all_encodings(test_data: &TestData,
+                                        test_range: (usize, usize),
+                                        message: &str) -> (Encoding, f64) {
 
     let all_sub_encodings = encoding::get_all_sub_encodings(30);
 
-    let total_count = 20214480u64;
+    // let total_count = 20214480u64;
+    let test_range_len = test_range.1 - test_range.0;
 
-    println!("Testing a total of {} encodings", total_count);
+    println!("Testing a total of {} encodings", test_range_len);
 
-    let mut count = 0u64;
+    let mut index = 0us;
     let mut best_fitness = 0.0f64;
     let mut best_encoding = None;
 
     for i1 in range(0, all_sub_encodings.len()) {
         for i2 in range(i1+1, all_sub_encodings.len()) {
             for i3 in range(i2+1, all_sub_encodings.len()) {
-                count += 1;
+                if index < test_range.0 {
+                    index += 1;
+                    continue;
+                }
 
                 let sub_encodings = [all_sub_encodings[i1],
                                      all_sub_encodings[i2],
@@ -170,11 +176,20 @@ pub fn compute_fitness_of_all_encodings(test_data: &TestData) {
                     best_encoding = Some(encoding);
                 }
 
-                if (count & ((1 << 10) - 1)) == 0 {
-                    let percent = (((count as f64) / (total_count as f64)) * 100.0) as u64;
+                index += 1;
 
-                    println!("Tested {} encodings so far ({}%). Best is {} (fitness={}).",
-                             count,
+                if index >= test_range.1 {
+                    println!("exiting {}", message);
+                    return (best_encoding.unwrap(), best_fitness);
+                }
+
+                if (index & ((1 << 12) - 1)) == 0 {
+                    let tested_count = index - test_range.0;
+                    let percent = (((tested_count as f64) / (test_range_len as f64)) * 100.0) as u64;
+
+                    println!("{}. Tested {} encodings so far ({}%). Best is {} (fitness={}).",
+                             message,
+                             tested_count,
                              percent,
                              best_encoding.as_ref().unwrap().to_string(),
                              best_fitness);
@@ -182,4 +197,6 @@ pub fn compute_fitness_of_all_encodings(test_data: &TestData) {
             }
         }
     }
+
+    (best_encoding.unwrap(), best_fitness)
 }
