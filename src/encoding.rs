@@ -10,17 +10,17 @@ use std::iter::FromIterator;
 #[derive(PartialEq, Eq, Clone)]
 pub struct Encoding {
     pub sub_encodings: Vec<SubEncoding>,
-    max_bits_for_subencodings: u32,
-    max_total_bit_count: u32,
+    max_bits_for_subencodings: u64,
+    max_total_bit_count: u64,
 }
 
 impl Encoding {
     pub fn new(
         sub_encodings: &[SubEncoding],
-        max_total_bit_count: u32)
+        max_total_bit_count: u64)
     -> Encoding {
 
-        let sub_encoding_disr_bits = sub_encoding_disr_bits(sub_encodings.len() as u32);
+        let sub_encoding_disr_bits = sub_encoding_disr_bits(sub_encodings.len() as u64);
 
         if sub_encodings.iter()
                         .map(|se| se.total_bit_count() + sub_encoding_disr_bits)
@@ -52,7 +52,7 @@ impl Encoding {
         let mut s = String::new();
 
         for sub_encoding in self.sub_encodings.iter() {
-            s.push_str(format!("({}, {}, {}) ",
+            s.push_str(format!("(len: {}, pos: {}, exp: {}) ",
                                sub_encoding.length_bits,
                                sub_encoding.position_bits,
                                sub_encoding.expn_id_bits).as_slice());
@@ -61,34 +61,34 @@ impl Encoding {
         s
     }
 
-    pub fn sub_encodings(&self) -> &[SubEncoding] {
-        &self.sub_encodings[]
-    }
+    // pub fn sub_encodings(&self) -> &[SubEncoding] {
+    //     &self.sub_encodings[..]
+    // }
 
-    pub fn max_bits_for_subencodings(&self) -> u32 {
-        self.max_bits_for_subencodings
-    }
+    // pub fn max_bits_for_subencodings(&self) -> u64 {
+    //     self.max_bits_for_subencodings
+    // }
 
-    pub fn max_total_bit_count(&self) -> u32 {
+    pub fn max_total_bit_count(&self) -> u64 {
         self.max_total_bit_count
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SubEncoding {
-    pub length_bits: u32,
-    pub position_bits: u32,
-    pub expn_id_bits: u32,
-    pub max_encodable_length: u32,
-    pub max_encodable_position: u32,
-    pub max_encodable_expn_id: u32,
+    pub length_bits: u64,
+    pub position_bits: u64,
+    pub expn_id_bits: u64,
+    pub max_encodable_length: u64,
+    pub max_encodable_position: u64,
+    pub max_encodable_expn_id: u64,
 }
 
 impl SubEncoding {
     pub fn new(
-        length_bits: u32,
-        position_bits: u32,
-        expn_id_bits: u32)
+        length_bits: u64,
+        position_bits: u64,
+        expn_id_bits: u64)
     -> SubEncoding {
         SubEncoding {
             length_bits: length_bits,
@@ -106,12 +106,12 @@ impl SubEncoding {
         (span.expn_id == 0xFFFFFFFF || span.expn_id <= self.max_encodable_expn_id)
     }
 
-    pub fn total_bit_count(&self) -> u32 {
+    pub fn total_bit_count(&self) -> u64 {
         self.length_bits + self.position_bits + self.expn_id_bits
     }
 }
 
-fn generate_all_sub_encodings(bit_count: u32) -> Vec<SubEncoding> {
+fn generate_all_sub_encodings(bit_count: u64) -> Vec<SubEncoding> {
 
     let mut sub_encodings = vec![];
 
@@ -131,14 +131,14 @@ fn generate_all_sub_encodings(bit_count: u32) -> Vec<SubEncoding> {
     return sub_encodings;
 }
 
-pub fn get_all_sub_encodings(bit_count: u32) -> &'static [SubEncoding] {
+pub fn get_all_sub_encodings(bit_count: u64) -> &'static [SubEncoding] {
 
     static mut ALL_SUB_ENCODINGS: [(usize, *const SubEncoding); 64] = [(0, 0 as *const SubEncoding); 64];
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
         for i in range(1, 64) {
-            let all_sub_encodings = generate_all_sub_encodings(i as u32);
+            let all_sub_encodings = generate_all_sub_encodings(i as u64);
             unsafe {
                 ALL_SUB_ENCODINGS[i] = (all_sub_encodings.len(), all_sub_encodings.as_slice().as_ptr());
                 mem::forget(all_sub_encodings);
@@ -153,8 +153,8 @@ pub fn get_all_sub_encodings(bit_count: u32) -> &'static [SubEncoding] {
 }
 
 pub fn generate_random_encoding(
-    total_bit_count: u32,
-    sub_encoding_count: u32)
+    total_bit_count: u64,
+    sub_encoding_count: u64)
 -> Encoding {
     let sub_encoding_disr_bits = sub_encoding_disr_bits(sub_encoding_count);
     let sub_encoding_bit_count = total_bit_count - sub_encoding_disr_bits;
@@ -170,10 +170,10 @@ pub fn generate_random_encoding(
 
     let sub_encodings: Vec<SubEncoding> = FromIterator::from_iter(sub_encodings.into_iter());
 
-    Encoding::new(&sub_encodings[], total_bit_count)
+    Encoding::new(&sub_encodings[..], total_bit_count)
 }
 
-fn sub_encoding_disr_bits(sub_encoding_count: u32) -> u32 {
+fn sub_encoding_disr_bits(sub_encoding_count: u64) -> u64 {
     match sub_encoding_count {
         0 => panic!("Invalid encoding -- no sub-encodings."),
         1 => 1,
